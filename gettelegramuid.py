@@ -10,7 +10,7 @@ import sys
 
 #Constants
 ##########################################################################
-SETTINGSFILE = '/tom_files/stocks.ini'
+SETTINGSFILE = 'tom_files/stocks.ini'
 ##########################################################################
 
 # Read config file

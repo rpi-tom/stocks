@@ -29,7 +29,7 @@ import requests
 ##########################################################################
 VERBOSE = False
 """boolean: Variable to control output to stdout of messages during execution"""
-SETTINGSFILE = '/tom_files/stocks.ini'
+SETTINGSFILE = 'tom_files/stocks.ini'
 """string: Name of settings file"""
 HOLIDAYSERVICE = "http://kayaposoft.com/enrico/json/v1.0/?action=getPublicHolidaysForYear&year=%d&country=%s"
 """string: Address of webservice to retreive holiday data"""

@@ -18,7 +18,7 @@ import os
 
 #Constants
 ##########################################################################
-SETTINGSFILE = '/tom_files/'
+SETTINGSFILE = 'tom_files/'
 VERBOSE = True
 
 #Strategy
