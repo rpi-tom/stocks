@@ -7,7 +7,7 @@
 import version
 
 from googlefinance import getQuotes
-from ystockquote import get_historical_prices, get_price
+##tfs## from ystockquote import get_historical_prices, get_price
 import operator
 
 import sqlite3
