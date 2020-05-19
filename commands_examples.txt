@@ -1,0 +1,8 @@
+Example buy/sell commands:
+
+/buy 50 BP.L 15
+/sell 40 BP.L 20
+
+/returns
+
+/portfolio

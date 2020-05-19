@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+#run manually to refresh sqlite3 db:
+
+rm stockdata.sqlite
+sqlite3 stockdata.sqlite
+.read stocks_db_structure.sql
+.read stocks_db_data.sql
+
+.header on
+.mode column
+select * from stocks;
+.exit
