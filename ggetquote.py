@@ -18,7 +18,7 @@ import monitorstock
 
 #Constants
 ##########################################################################
-SETTINGSFILE = 'stocks.ini'
+SETTINGSFILE = '/tom_files/stocks.ini'
 VERBOSE = True
 ##########################################################################
 

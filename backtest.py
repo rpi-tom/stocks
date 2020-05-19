@@ -18,7 +18,7 @@ import os
 
 #Constants
 ##########################################################################
-SETTINGSFILE = 'stocks.ini'
+SETTINGSFILE = '/tom_files/stocks.ini'
 VERBOSE = True
 
 #Strategy

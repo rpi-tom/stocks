@@ -19,7 +19,7 @@ from ConfigParser import SafeConfigParser
 
 #Constants
 # ##########################################################################
-SETTINGSFILE = 'stocks.ini'
+SETTINGSFILE = '/tom_files/stocks.ini'
 ##########################################################################
 
 #Globals
