@@ -5,3 +5,7 @@ homeserverfl_bot.txt
 /stocks.ini
 /testuploadfile.txt
 testuploadfile.txt
+/tom_files/*
+/tom_files/stocks.ini
+/tom_files/stocks_db_structure.sql
+/tom_files/stocks_db_data.sql
