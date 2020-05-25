@@ -6,8 +6,9 @@
 """
 import version
 
-from googlefinance import getQuotes
+#from googlefinance import getQuotes
 ##tfs## from ystockquote import get_historical_prices, get_price
+from finnhub import client as Finnhub
 import operator
 
 import sqlite3
@@ -17,8 +18,8 @@ import dateutil.parser
 import pytz
 
 import telepot
-
-from ConfigParser import SafeConfigParser
+from configparser import ConfigParser
+#from ConfigParser import SafeConfigParser
 import codecs
 import sys
 import os
@@ -40,7 +41,14 @@ HOLIDAYSERVICE = "http://kayaposoft.com/enrico/json/v1.0/?action=getPublicHolida
 global DATABASE
 global newdayalert
 global tzd #timezones object
+global client
 ##########################################################################
+parser = ConfigParser()
+with codecs.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), SETTINGSFILE), 'r', encoding='utf-8') as f:
+    parser.readfp(f)
+api_key = parser.get('Finnhub','key')
+client = Finnhub.Client(api_key=api_key)
+
 
 ##########################################################################
 def main():
@@ -49,21 +57,24 @@ def main():
     initializetz()
 
     # Read config file
-    parser = SafeConfigParser()
+    parser = ConfigParser()
+    #parser = SafeConfigParser()
 
     # Open the file with the correct encoding
     with codecs.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), SETTINGSFILE), 'r', encoding='utf-8') as f:
         parser.readfp(f)
 
     DATABASE = parser.get('Database', 'File')
+    api_key = parser.get('Finnhub','key')
+    client = Finnhub.Client(api_key=api_key)
 
     try:
         # Create access to bot
         bot = telepot.Bot(parser.get('Telegram', 'token'))
         uid = parser.get('Telegram', 'uid')
-        # bot.sendMessage(uid, text=u"Start %s\n%s\n%s" % (os.path.basename(sys.argv[0]), version.__version__, datetime.datetime.now()))
+        #bot.sendMessage(uid, text=u"Start %s\n%s\n%s" % (os.path.basename(sys.argv[0]), version.__version__, datetime.datetime.now()))
     except:
-        print u'Cannot access Telegram. Please do /start'
+        print (u'Cannot access Telegram. Please do /start')
         sys.exit(1)
 
     conn = sqlite3.connect(DATABASE)
@@ -82,8 +93,9 @@ def main():
 
         #Check if market open
         if not(checkifmarketopen(stock["exchangeid"], stock['symbolgoogle'], stock['name'],conn)):
+            #TFS#
             continue
-
+            print ('bypassing continue')
         symbol = str(stock["symbolgoogle"])
         minreturn = float(stock['minreturn'])
         lowcount = int(stock['lowcount'])
@@ -109,15 +121,26 @@ def main():
             lasttradedatetime = None
 
         #Get current quote
-        quote = getQuotes(symbol)[0]
-        correcteddate = quote["LastTradeDateTimeLong"]
+        #tfs#
+        #old_code#quote = getQuotes(symbol)[0]
+        #correcteddate = quote["LastTradeDateTimeLong"]
+        fin_quote = client.quote(symbol=symbol)
+        print(fin_quote)
+        quote = fin_quote["c"]
+        print("stock price:")
+        print (quote)
+        print("The Date")
+        timestamp = fin_quote["t"]
+        correcteddate = timestamp = datetime.datetime.utcfromtimestamp(timestamp).isoformat()
+        print (correcteddate)
         #parse uses posix stype for timezone offsets. ISO requires inversion in sign!!
         if correcteddate.find('+'):
             correcteddate=correcteddate.replace('+', '-')
         elif correcteddate.find('-'):
             correcteddate=correcteddate.replace('-', '+')
         datetradenow = dateutil.parser.parse(correcteddate, tzinfos=tzd) #get current last trade time on market
-        nowquotevalue = float(quote['LastTradePrice']) #get last quote
+        nowquotevalue = fin_quote["c"]#float(quote["c"])
+        #quote['LastTradePrice']) #get last quote
 
         newdayalert = False
 
@@ -125,7 +148,7 @@ def main():
             #New Day!
             bot.sendMessage(uid, text=u"New Day for stock %s" % stock['name'])
             if VERBOSE:
-                print "New Day for stock %s" % stock['name']
+                print ("New Day for stock %s" % stock['name'])
             newdayalert = True
 
         if newdayalert:
@@ -133,7 +156,7 @@ def main():
             if checkiftimetobuy(stock['symbolyahoo'], lowcount, datetradenow, nowquotevalue):
                 bot.sendMessage(uid, text=u"Time to BUY %s (%s) Price = %8.3f" % (stock['name'], symbol, nowquotevalue))
                 if VERBOSE:
-                    print "Time to BUY %s (%s) Price = %8.3f" % (stock['name'], symbol, nowquotevalue)
+                    print ("Time to BUY %s (%s) Price = %8.3f" % (stock['name'], symbol, nowquotevalue))
 
             checkifdividendday(datetradenow.date() ,conn)
             checkifsplitday(datetradenow.date() ,conn)
@@ -146,15 +169,20 @@ def main():
             newdayalert = False
             bot.sendMessage(uid, text=u"Time to SELL %s (%s) Qty = %8.2f Price = %8.3f" % (stock['name'], symbol, qty, nowquotevalue))
             if VERBOSE:
-                print "Time to SELL %s (%s) Qty = %8.2f Price = %8.3f" % (stock['name'], symbol, qty, nowquotevalue)
+                print ("Time to SELL %s (%s) Qty = %8.2f Price = %8.3f" % (stock['name'], symbol, qty, nowquotevalue))
 
     #Update quotes in tracked stocks
     for stock in c.execute("select * from stocks where tracked='True'"):
         if not(checkifmarketopen(stock["exchangeid"], stock['symbolgoogle'], stock['name'],conn)):
             continue
 
-        nowutc = datetime.datetime.utcnow().replace(tzinfo = pytz.utc)
+        #nowutc = datetime.datetime.utcnow().replace(tzinfo = pytz.utc)
+        #print("nowutc:" + str(nowutc))
+        nowutc = datetime.datetime.utcnow()
+        print("nowutc:" + str(nowutc))
+        
         lastdateplus = dateutil.parser.parse(stock['lastquotestamp']) + datetime.timedelta( minutes=int(stock['interval'] ))
+        print (lastdateplus)
         if (stock['lastquotestamp'] is None) or (lastdateplus< nowutc):
             timestamp, nowquotevalue = savequote(int(stock['id']), stock['lastquotestamp'], conn)
 
@@ -228,7 +256,7 @@ def checkiftimetobuy(symbol, lowcount, datetradenow, nowquotevalue):
     Returns:
         boolean: True if it is time to buy stock
     """
-
+    """
     quotes = get_historical_prices(symbol, (datetradenow-datetime.timedelta(days=lowcount)).strftime("%Y-%m-%d"), (datetradenow-datetime.timedelta(days=1)).strftime("%Y-%m-%d"))
     sortedquotes = sorted(quotes.items(), key=operator.itemgetter(0))
 
@@ -254,12 +282,15 @@ def checkiftimetobuy(symbol, lowcount, datetradenow, nowquotevalue):
     if countlow>=lowcount and nowquotevalue<quoteant:
         return True
     else:
-        return False
+        return False  """
+    print("checkiftimetobuy short ciruited, always return true")
+    return True
+
 ##########################################################################
 
 ##########################################################################
 def buystock(symbol, qty, price, date, conn):
-
+    print("into buystock script")
     if qty<=0:
         return
 
@@ -415,10 +446,10 @@ def sellstock(symbol, qty, price, date, conn):
 
         success = True
 
-    except Exception,e:
+    except Exception as e:
         #print str(e)
         if VERBOSE:
-            print "Stock not in portfolio. Cannot sell"
+            print ("Stock not in portfolio. Cannot sell")
 
     conn.commit()
 
@@ -440,7 +471,7 @@ def checkifmarketopen(exchangeid, stocksymbol, stockname, conn):
 
     if not(daytoday in opendays): #if stockmarket closed, pass
         if VERBOSE:
-            print "Stock market %s in weekend for stock %s(%s)" % (exchange['shortnamegoogle'], stocksymbol,stockname)
+            print ("Stock market %s in weekend for stock %s(%s)" % (exchange['shortnamegoogle'], stocksymbol,stockname))
         return False
 
     #see if today is a holliday in the stock exchange
@@ -474,7 +505,7 @@ def checkifmarketopen(exchangeid, stocksymbol, stockname, conn):
 
     if isholliday: #if today is holliday, pass
         if VERBOSE:
-            print "Stock market %s in holliday for stock %s(%s)" % (exchange['shortnamegoogle'], stocksymbol,stockname)
+            print ("Stock market %s in holliday for stock %s(%s)" % (exchange['shortnamegoogle'], stocksymbol,stockname))
         return False
 
     #see if the stock exchange is opened now
@@ -489,7 +520,7 @@ def checkifmarketopen(exchangeid, stocksymbol, stockname, conn):
 
         if (now<openhour) or (now>closehour): #if stockmarket closed, pass
             if VERBOSE:
-                print "Stock market %s closed for stock %s(%s)" % (exchange['shortnamegoogle'], stocksymbol,stockname)
+                print ("Stock market %s closed for stock %s(%s)" % (exchange['shortnamegoogle'], stocksymbol,stockname))
             return False
 
     return True
@@ -599,7 +630,10 @@ def getstockreturn(stockid, conn):
     # If stock in portfolio check its current martket value
     c.execute("select symbolgoogle from stocks where id=:id", {'id':int(stockid)})
     symbol = str(c.fetchone()['symbolgoogle'])
-    quote = getQuotes(symbol)[0]["LastTradePrice"]  #get quote
+    fin_quote = client.quote(symbol=symbol)
+    print(fin_quote)
+    quote = fin_quote["c"]
+    #quote = getQuotes(symbol)[0]["LastTradePrice"]  #get quote
     c.execute("select qty from portfolio where stockid=:id", {'id':int(stockid)})
 
     try:
@@ -625,10 +659,15 @@ def savequote(stockid, lastquotestamp, conn):
     row = c.fetchone()
     if row['type'].upper() == 'STOCK':
         symbol = str(row['symbolgoogle'])
-        quote = getQuotes(symbol) #get quote
-        value = quote[0]["LastTradePrice"]
+        fin_quote = client.quote(symbol=symbol)
+        quote = fin_quote["c"]
+        #quote = getQuotes(symbol) #get quote
+        value = quote
+        #value = quote[0]["LastTradePrice"]
         #parse uses posix stype for timezone offsets. ISO requires inversion in sign!!
-        correcteddate = quote[0]["LastTradeDateTimeLong"]
+        timestamp = fin_quote["t"]
+        correcteddate = timestamp = datetime.datetime.utcfromtimestamp(timestamp).isoformat()
+        #correcteddate = quote[0]["LastTradeDateTimeLong"]
         if correcteddate.find('+'):
             correcteddate=correcteddate.replace('+', '-')
         elif correcteddate.find('-'):

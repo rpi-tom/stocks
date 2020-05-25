@@ -8,3 +8,9 @@ testuploadfile.txt
 /tom_files/stocks.ini
 /tom_files/stocks_db_structure.sql
 /tom_files/stocks_db_data.sql
+/sql*
+stockdata.sqlite
+.vscode/settings.json
+__pycache__/monitorstock.cpython-37.pyc
+__pycache__/version.cpython-37.pyc
+__pycache__/monitorstock1.cpython-37.pyc

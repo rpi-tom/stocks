@@ -14,8 +14,8 @@ import os
 import sqlite3
 
 import monitorstock
-
-from ConfigParser import SafeConfigParser
+#from ConfigParser import SafeConfigParser
+from configparser import ConfigParser
 
 #Constants
 # ##########################################################################
@@ -69,13 +69,14 @@ def handle(msg):
                     bot.sendMessage(uid, text=u"Success. Sold %.2f. Closed position." % (qty) )
             else:
                 bot.sendMessage(uid, text=u"Error. Unknown stock; or not available; or not enough quantity to sell %s" % stock )
-        except Exception,e:
+        except Exception as e:
             #print str(e)
             bot.sendMessage(uid, text=u"Error. Unknown stock or not available to sell %s" % stock )
             return
 
         conn.close()
     elif commands[0] == '/BUY':
+        print("buy code 1")
         try:
             qty = float(commands[1])
             stock = commands[2]
@@ -88,17 +89,16 @@ def handle(msg):
             date = commands[4]
         except:
             date = None
-
         try:
+            #print(stock + " / " + quantity)
             monitorstock.buystock(stock, qty, price, date, conn)
-
             c = conn.cursor()
             c.execute("select portfolio.qty,portfolio.cost from portfolio, stocks where stocks.symbolgoogle=:symbol and portfolio.stockid=stocks.id", {'symbol':stock})
             row = c.fetchone()
             avgprice = float(row['cost'])
             bot.sendMessage(uid, text=u"Success. Bought %.2f %s @ %.3f. New quantity on hand %.2f. New averageprice %.3f" % (qty, stock, price, float(row['qty']), avgprice) )
 
-        except Exception,e:
+        except Exception as e:
             #print str(e)
             bot.sendMessage(uid, text=u"Error. Unknown stock or not available to buy %s" % stock )
             return
@@ -179,7 +179,7 @@ def handle(msg):
             conn.commit()
             bot.sendMessage(uid, text=u"Ok. Split set for %s" % stock)
         except:
-            print sys.exc_info()[0]
+            print (sys.exc_info()[0])
             bot.sendMessage(uid, text=u"Error setting split for %s" % stock)
 
     elif commands[0] == '/HELP':
@@ -191,24 +191,24 @@ def handle(msg):
 ##########################################################################
 def main():
     global bot
-    global uid
+    global uid    
 
     # Read config file
-    parser = SafeConfigParser()
+    parser = ConfigParser() #SafeConfigParser()
 
     # Open the file with the correct encoding
     with codecs.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), SETTINGSFILE), 'r', encoding='utf-8') as f:
         parser.readfp(f)
-
     try:
         # Create access to bot
-        bot = telepot.Bot(parser.get('Telegram', 'token'))
+        token_t = parser.get('Telegram', 'token')
+        bot = telepot.Bot(token_t)
         bot.message_loop(handle)
         uid = parser.get('Telegram', 'uid')
-        bot.sendMessage(uid, text=u"Start %s\n%s\n%s" % (os.path.basename(sys.argv[0]), version.__version__, datetime.datetime.now()))
+        bot.sendMessage(uid, text = u"Start %s\n%s\n%s" % (os.path.basename(sys.argv[0]), version.__version__, datetime.datetime.now()))
     except:
-        print u'Cannot access Telegram. Please do /start'
-        sys.exit(1)
+        print (u'Cannot access Telegram. Please do /start')
+        #sys.exit(1)
 
     global DATABASE
     DATABASE = parser.get('Database', 'File')
